@@ -9,6 +9,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
   const [loading, setLoading] = useState(false)
   const { signIn, signUp, session } = useAuth()
   const navigate = useNavigate()
@@ -24,6 +25,7 @@ export default function Login() {
       const res = await fetch(`${API_URL}/api/preferences`, {
         headers: { Authorization: `Bearer ${token}` }
       })
+      if (!res.ok) throw new Error(`API error ${res.status}`)
       const data = await res.json()
       navigate(data.preferences ? '/dashboard' : '/onboarding', { replace: true })
     } catch {
@@ -34,6 +36,7 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+    setSuccess(null)
     setLoading(true)
     try {
       if (mode === 'login') {
@@ -41,7 +44,7 @@ export default function Login() {
         if (session) await redirectAfterAuth(session.access_token)
       } else {
         await signUp(email, password)
-        setError('Check your email to confirm your account before logging in.')
+        setSuccess('Check your email to confirm your account before logging in.')
       }
     } catch (err) {
       setError(err.message)
@@ -62,6 +65,7 @@ export default function Login() {
           <input
             type="email"
             placeholder="Email"
+            autoComplete="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -70,6 +74,7 @@ export default function Login() {
           <input
             type="password"
             placeholder="Password"
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             value={password}
             onChange={e => setPassword(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -78,6 +83,11 @@ export default function Login() {
           {error && (
             <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">
               {error}
+            </p>
+          )}
+          {success && (
+            <p className="text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
+              {success}
             </p>
           )}
           <button
@@ -93,8 +103,9 @@ export default function Login() {
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
           <button
             type="button"
-            onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null) }}
-            className="text-green-600 font-semibold hover:underline"
+            disabled={loading}
+            onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setSuccess(null) }}
+            className="text-green-600 font-semibold hover:underline disabled:opacity-50"
           >
             {mode === 'login' ? 'Sign up' : 'Log in'}
           </button>
