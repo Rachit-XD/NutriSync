@@ -43,8 +43,13 @@ describe('Auth Middleware', () => {
       data: { user: { id: 'user-123', email: 'test@example.com' } },
       error: null
     })
-    // preferences route not yet registered, so GET /api/preferences returns 404 (not 401)
-    // That proves auth passed
+    // Mock the DB chain so the preferences route doesn't crash
+    supabase.from.mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } })
+    })
+    // Proves auth passed — preferences route now returns 200 (null prefs for new user)
     const res = await request(app)
       .get('/api/preferences')
       .set('Authorization', 'Bearer valid-token')

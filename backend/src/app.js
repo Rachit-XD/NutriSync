@@ -2,6 +2,7 @@ require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const authMiddleware = require('./middleware/auth')
+const preferencesRouter = require('./routes/preferences')
 
 const app = express()
 
@@ -19,6 +20,7 @@ app.get('/health', (req, res) => {
 
 // All /api/* routes require a valid Supabase JWT
 app.use('/api', authMiddleware)
+app.use('/api/preferences', preferencesRouter)
 
 // 404 handler
 app.use((req, res) => {
