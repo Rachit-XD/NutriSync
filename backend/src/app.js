@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
+const rateLimit = require('express-rate-limit')
 const authMiddleware = require('./middleware/auth')
 const preferencesRouter = require('./routes/preferences')
 
@@ -12,6 +13,16 @@ app.use(cors({
 }))
 
 app.use(express.json())
+
+// Rate limit all /api/* routes: 100 requests per 15 minutes per IP
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+})
+app.use('/api', apiLimiter)
 
 // Public routes
 app.get('/health', (req, res) => {

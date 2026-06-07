@@ -50,4 +50,4 @@
  * @property {number} total_budget_inr
  */
 
-module.exports = {}
+// This file is JSDoc-only. Import typedefs via @type {import('../../shared/types').MealPlan}

@@ -1,5 +1,6 @@
 -- NutriSync initial schema
 -- Run this in the Supabase SQL editor: Dashboard > SQL Editor > New query
+-- This script is idempotent: safe to run multiple times.
 
 -- ============================================================
 -- TABLES
@@ -52,6 +53,11 @@ create table if not exists subscriptions (
   current_period_end timestamptz,
   created_at timestamptz not null default now(),
   unique(user_id)
+  -- NOTE: subscriptions is written exclusively by the Stripe webhook handler
+  -- using the service-role key (which bypasses RLS). Only a SELECT policy
+  -- is granted to authenticated users so they can read their own tier.
+  -- Do NOT add INSERT/UPDATE/DELETE policies here — that would allow
+  -- users to self-upgrade their plan from the client.
 );
 
 -- ============================================================
@@ -61,19 +67,23 @@ create table if not exists subscriptions (
 -- user_preferences
 alter table user_preferences enable row level security;
 
+drop policy if exists "users_select_own_preferences" on user_preferences;
 create policy "users_select_own_preferences"
   on user_preferences for select
   using (auth.uid() = user_id);
 
+drop policy if exists "users_insert_own_preferences" on user_preferences;
 create policy "users_insert_own_preferences"
   on user_preferences for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "users_update_own_preferences" on user_preferences;
 create policy "users_update_own_preferences"
   on user_preferences for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "users_delete_own_preferences" on user_preferences;
 create policy "users_delete_own_preferences"
   on user_preferences for delete
   using (auth.uid() = user_id);
@@ -81,19 +91,23 @@ create policy "users_delete_own_preferences"
 -- meal_plans
 alter table meal_plans enable row level security;
 
+drop policy if exists "users_select_own_meal_plans" on meal_plans;
 create policy "users_select_own_meal_plans"
   on meal_plans for select
   using (auth.uid() = user_id);
 
+drop policy if exists "users_insert_own_meal_plans" on meal_plans;
 create policy "users_insert_own_meal_plans"
   on meal_plans for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "users_update_own_meal_plans" on meal_plans;
 create policy "users_update_own_meal_plans"
   on meal_plans for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "users_delete_own_meal_plans" on meal_plans;
 create policy "users_delete_own_meal_plans"
   on meal_plans for delete
   using (auth.uid() = user_id);
@@ -101,10 +115,12 @@ create policy "users_delete_own_meal_plans"
 -- meal_feedback
 alter table meal_feedback enable row level security;
 
+drop policy if exists "users_select_own_feedback" on meal_feedback;
 create policy "users_select_own_feedback"
   on meal_feedback for select
   using (auth.uid() = user_id);
 
+drop policy if exists "users_insert_own_feedback" on meal_feedback;
 create policy "users_insert_own_feedback"
   on meal_feedback for insert
   with check (
@@ -116,6 +132,7 @@ create policy "users_insert_own_feedback"
     )
   );
 
+drop policy if exists "users_update_own_feedback" on meal_feedback;
 create policy "users_update_own_feedback"
   on meal_feedback for update
   using (auth.uid() = user_id)
@@ -128,13 +145,15 @@ create policy "users_update_own_feedback"
     )
   );
 
+drop policy if exists "users_delete_own_feedback" on meal_feedback;
 create policy "users_delete_own_feedback"
   on meal_feedback for delete
   using (auth.uid() = user_id);
 
--- subscriptions
+-- subscriptions (read-only for authenticated users; writes go through service-role key)
 alter table subscriptions enable row level security;
 
+drop policy if exists "users_select_own_subscription" on subscriptions;
 create policy "users_select_own_subscription"
   on subscriptions for select
   using (auth.uid() = user_id);
@@ -143,8 +162,6 @@ create policy "users_select_own_subscription"
 -- INDEXES
 -- ============================================================
 
--- Performance indexes
 create index if not exists meal_plans_user_id_idx on meal_plans (user_id);
 create index if not exists meal_feedback_user_id_idx on meal_feedback (user_id);
 create index if not exists meal_feedback_meal_plan_id_idx on meal_feedback (meal_plan_id);
-
