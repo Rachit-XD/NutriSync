@@ -25,7 +25,8 @@ create table if not exists meal_plans (
   week_start_date date not null,
   plan_json jsonb not null,
   generation_cost_tokens integer,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique(user_id, week_start_date)
 );
 
 create table if not exists meal_feedback (
@@ -36,7 +37,9 @@ create table if not exists meal_feedback (
   meal_type text not null check (meal_type in ('breakfast', 'lunch', 'dinner', 'snack')),
   rating text check (rating in ('thumbs_up', 'thumbs_down')),
   skipped boolean not null default false,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  check (day_of_week in ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')),
+  check (skipped = true or rating is not null)
 );
 
 create table if not exists subscriptions (
@@ -104,12 +107,26 @@ create policy "users_select_own_feedback"
 
 create policy "users_insert_own_feedback"
   on meal_feedback for insert
-  with check (auth.uid() = user_id);
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from meal_plans
+      where meal_plans.id = meal_plan_id
+        and meal_plans.user_id = auth.uid()
+    )
+  );
 
 create policy "users_update_own_feedback"
   on meal_feedback for update
   using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from meal_plans
+      where meal_plans.id = meal_plan_id
+        and meal_plans.user_id = auth.uid()
+    )
+  );
 
 create policy "users_delete_own_feedback"
   on meal_feedback for delete
@@ -122,15 +139,12 @@ create policy "users_select_own_subscription"
   on subscriptions for select
   using (auth.uid() = user_id);
 
-create policy "users_insert_own_subscription"
-  on subscriptions for insert
-  with check (auth.uid() = user_id);
+-- ============================================================
+-- INDEXES
+-- ============================================================
 
-create policy "users_update_own_subscription"
-  on subscriptions for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+-- Performance indexes
+create index if not exists meal_plans_user_id_idx on meal_plans (user_id);
+create index if not exists meal_feedback_user_id_idx on meal_feedback (user_id);
+create index if not exists meal_feedback_meal_plan_id_idx on meal_feedback (meal_plan_id);
 
-create policy "users_delete_own_subscription"
-  on subscriptions for delete
-  using (auth.uid() = user_id);
