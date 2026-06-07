@@ -169,4 +169,13 @@ describe('POST /api/preferences', () => {
     expect(res.status).toBe(400)
     expect(res.body.error).toMatch(/cooking_days/i)
   })
+
+  it('returns 400 when spice_level is invalid', async () => {
+    const res = await request(app)
+      .post('/api/preferences')
+      .set(authHeader())
+      .send({ ...validBody, spice_level: 'extra_hot' })
+    expect(res.status).toBe(400)
+    expect(res.body.error).toMatch(/spice_level/i)
+  })
 })

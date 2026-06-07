@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
         goal,
         diet_type,
         spice_level,
-        cooking_days: cooking_days || [],
+        cooking_days,
         daily_budget_inr,
         kitchen_gear: kitchen_gear || [],
         allergies: allergies || null,
