@@ -4,6 +4,9 @@ const cors = require('cors')
 const rateLimit = require('express-rate-limit')
 const authMiddleware = require('./middleware/auth')
 const preferencesRouter = require('./routes/preferences')
+const mealPlanRouter = require('./routes/mealPlan')
+const feedbackRouter = require('./routes/feedback')
+const prepListRouter = require('./routes/prepList')
 
 const app = express()
 
@@ -32,6 +35,9 @@ app.get('/health', (req, res) => {
 // All /api/* routes require a valid Supabase JWT
 app.use('/api', authMiddleware)
 app.use('/api/preferences', preferencesRouter)
+app.use('/api/meal-plan', mealPlanRouter)
+app.use('/api/feedback', feedbackRouter)
+app.use('/api/prep-list', prepListRouter)
 
 // 404 handler
 app.use((req, res) => {
